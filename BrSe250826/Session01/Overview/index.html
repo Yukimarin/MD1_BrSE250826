@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trực quan hóa Kiến thức HTML & Client - Server Model</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Tùy biến thanh cuộn */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.6);
+    }
+    .mindmap-node {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .branch-line {
+      position: relative;
+    }
+    .branch-line::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 12px;
+      width: 2px;
+      background: #e2e8f0;
+    }
+    .dark .branch-line::before {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Header & Toolbar -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-extrabold text-lg">
+          &lt;/&gt;
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent leading-tight">
+            HTML & Kiến Trúc Web
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Trực quan hóa sơ đồ tư duy XMind</p>
+        </div>
+      </div>
+
+      <!-- Search & Controls -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-1 max-w-md justify-end">
+        <div class="relative w-full max-w-xs">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Tìm thẻ, khái niệm (vd: input, request, colspan)..."
+            class="w-full text-xs sm:text-sm pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+          >
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+
+        <!-- Mode Toggle (Mindmap vs Cards) -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+          <button id="viewMindmapBtn" class="px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+            <span class="hidden md:inline">Sơ đồ Cây</span>
+          </button>
+          <button id="viewCardsBtn" class="px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span class="hidden md:inline">Sổ tay Thẻ</span>
+          </button>
+        </div>
+
+        <!-- Dark mode button -->
+        <button id="themeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition" title="Đổi giao diện">
+          <svg id="themeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Interactive Navigation Banner -->
+    <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-200 dark:border-indigo-900/50 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="flex h-3 w-3 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+          Chế độ xem tương tác: Bấm vào các nút tròn <span class="font-bold text-indigo-600 dark:text-indigo-400">[+/-]</span> để thu gọn hoặc mở rộng từng nhánh bài học.
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="expandAllBtn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition">
+          Mở rộng tất cả
+        </button>
+        <button id="collapseAllBtn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition">
+          Thu gọn tất cả
+        </button>
+      </div>
+    </div>
+
+    <!-- VIEW 1: INTERACTIVE MINDMAP TREE VIEW -->
+    <div id="mindmapView" class="space-y-6">
+      
+      <!-- Root Node -->
+      <div class="p-5 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white shadow-xl shadow-indigo-950/20 border border-indigo-700/50 flex items-center justify-between">
+        <div class="space-y-1">
+          <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-semibold">
+            <span>Trung tâm kiến thức</span>
+          </div>
+          <h2 class="text-2xl font-extrabold tracking-tight">HTML & Mô Hình Ứng Dụng Web</h2>
+          <p class="text-indigo-200 text-xs sm:text-sm">HyperText Markup Language (Ngôn ngữ đánh dấu siêu văn bản) & Nền tảng Client - Server</p>
+        </div>
+        <div class="hidden md:flex items-center gap-2 text-xs text-indigo-200 bg-white/10 px-3 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+          <span>Khung xương (HTML)</span> • <span>Da dẻ (CSS)</span> • <span>Bộ não (JS)</span>
+        </div>
+      </div>
+
+      <!-- Main Branches Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- BRANCH 1: Client - Server Model -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">01</span>
+              <div>
+                <h3 class="font-bold text-base text-slate-900 dark:text-white">Client - Server Model</h3>
+                <p class="text-xs text-slate-500">Mô hình máy khách - máy chủ</p>
+              </div>
+            </div>
+            <button data-toggle="branch-clientserver" class="toggle-btn p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800">
+              <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+          </div>
+
+          <div id="branch-clientserver" class="mt-4 space-y-4 text-sm">
+            <!-- 1.1 Khái niệm chung -->
+            <div class="node-group bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 border border-slate-200/60 dark:border-slate-700/60">
+              <div class="flex items-center justify-between cursor-pointer" onclick="toggleSub('sub-concept')">
+                <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-sky-500"></span> Internet & Website là gì?
+                </span>
+                <span class="text-xs text-slate-400">[+/-]</span>
+              </div>
+              <div id="sub-concept" class="mt-3 pl-4 border-l-2 border-sky-400/40 space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                <div class="p-2 rounded bg-white dark:bg-slate-900/80">
+                  <strong class="text-sky-600 dark:text-sky-400">Internet:</strong> Mạng lưới các máy tính được liên kết với nhau qua các dây liên kết vật lý, giúp truyền tải thông tin không biên giới.
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900/80">
+                  <strong class="text-sky-600 dark:text-sky-400">Website:</strong> Phương tiện truyền tải và hiển thị thông tin trên nền tảng internet.
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900/80">
+                  <strong class="text-indigo-600 dark:text-indigo-400">Nguyên lý hoạt động:</strong> Mô hình Client - Server là mô hình hoạt động cốt lõi của toàn bộ ứng dụng web trên thế giới.
+                </div>
+              </div>
+            </div>
+
+            <!-- 1.2 Server (Máy chủ) -->
+            <div class="node-group bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 border border-slate-200/60 dark:border-slate-700/60">
+              <div class="flex items-center justify-between cursor-pointer" onclick="toggleSub('sub-server')">
+                <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Server (Máy chủ) & Backend
+                </span>
+                <span class="text-xs text-slate-400">[+/-]</span>
+              </div>
+              <div id="sub-server" class="mt-3 pl-4 border-l-2 border-emerald-400/40 space-y-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                <p>• <strong>Bản chất:</strong> Là hệ thống máy tính vật lý được bật 24/7 (online liên tục) - dịch vụ này gọi là <em>Hosting</em>.</p>
+                <div class="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg">
+                  <p class="font-medium text-slate-700 dark:text-slate-200 mb-1">Tài nguyên lưu trữ:</p>
+                  <div class="flex flex-wrap gap-1.5 text-xs">
+                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">File tài liệu</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Hình ảnh</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Âm thanh</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Video</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Văn bản</span>
+                    <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">Định dạng giao diện web (HTML/CSS/JS)</span>
+                  </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg space-y-1">
+                  <p class="font-semibold text-emerald-600 dark:text-emerald-400">Nhiệm vụ chính của Server:</p>
+                  <ul class="list-disc pl-4 space-y-0.5 text-xs">
+                    <li>Luôn lắng nghe các yêu cầu (<strong>request</strong>) gửi từ Client.</li>
+                    <li>Tiếp nhận và tiến hành xử lý yêu cầu đó.</li>
+                    <li>Gửi trả phản hồi (<strong>response</strong>) về các tài nguyên tương ứng cho máy khách.</li>
+                  </ul>
+                  <p class="mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    ➔ Toàn bộ nghiệp vụ xử lý tại máy chủ gọi là: <span class="underline">Backend Development</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1.3 Client (Máy khách) -->
+            <div class="node-group bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 border border-slate-200/60 dark:border-slate-700/60">
+              <div class="flex items-center justify-between cursor-pointer" onclick="toggleSub('sub-client')">
+                <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Client (Máy khách) & Frontend
+                </span>
+                <span class="text-xs text-slate-400">[+/-]</span>
+              </div>
+              <div id="sub-client" class="mt-3 pl-4 border-l-2 border-indigo-400/40 space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                <p>• <strong>Bản chất:</strong> Là các thiết bị điện tử vật lý (máy tính, điện thoại, tablet, Smart TV...) có cài đặt <strong>Trình duyệt (Browser)</strong>.</p>
+                <div class="flex flex-wrap gap-2 py-1">
+                  <span class="px-2 py-1 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 text-xs font-medium">Google Chrome</span>
+                  <span class="px-2 py-1 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 text-xs font-medium">Apple Safari</span>
+                  <span class="px-2 py-1 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 text-xs font-medium">Mozilla Firefox</span>
+                  <span class="px-2 py-1 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 text-xs font-medium">Internet Explorer / Edge</span>
+                </div>
+                <div class="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg space-y-1">
+                  <p class="font-semibold text-indigo-600 dark:text-indigo-400">Nhiệm vụ chính của Client:</p>
+                  <ul class="list-disc pl-4 space-y-0.5 text-xs">
+                    <li>Giúp người dùng truy cập, gửi <strong>request</strong> lên Server.</li>
+                    <li>Tiếp nhận tài nguyên được phản hồi (<strong>response</strong>) từ máy chủ.</li>
+                    <li>Xử lý và hiển thị (<strong>render</strong>) các tài nguyên đó ra màn hình giao diện.</li>
+                  </ul>
+                  <p class="mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                    ➔ Toàn bộ nghiệp vụ xử lý tại máy khách gọi là: <span class="underline">Frontend Development</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tương quan 3 thành phần Web -->
+            <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-200/60 dark:border-indigo-800/40 text-xs flex items-center justify-around text-center">
+              <div>
+                <span class="font-bold text-orange-600 dark:text-orange-400 block text-sm">HTML</span>
+                <span class="text-slate-500">Skeleton (Khung xương)</span>
+              </div>
+              <div class="text-slate-300">➔</div>
+              <div>
+                <span class="font-bold text-blue-600 dark:text-blue-400 block text-sm">CSS</span>
+                <span class="text-slate-500">Skin (Da thịt, sắc tố)</span>
+              </div>
+              <div class="text-slate-300">➔</div>
+              <div>
+                <span class="font-bold text-yellow-600 dark:text-yellow-400 block text-sm">Javascript</span>
+                <span class="text-slate-500">Brain (Bộ não, tư duy)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BRANCH 2: Khái niệm & Cú pháp HTML -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-sm">02</span>
+              <div>
+                <h3 class="font-bold text-base text-slate-900 dark:text-white">Khái Niệm & Cú Pháp HTML</h3>
+                <p class="text-xs text-slate-500">Cấu trúc thẻ, thuộc tính & nội dung</p>
+              </div>
+            </div>
+            <button data-toggle="branch-syntax" class="toggle-btn p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800">
+              <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+          </div>
+
+          <div id="branch-syntax" class="mt-4 space-y-4 text-sm">
+            <!-- Khái niệm -->
+            <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 border border-slate-200/60 dark:border-slate-700/60 space-y-2">
+              <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-orange-500"></span> Bản chất của HTML
+              </span>
+              <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 pl-4 border-l-2 border-orange-400/40">
+                Là <strong>ngôn ngữ</strong> dùng để <strong>đánh dấu, phân vùng</strong> các thành phần nội dung hiển thị trên một trang web.
+              </p>
+              <div class="text-xs bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-lg border border-amber-200/50 dark:border-amber-900/50 text-amber-900 dark:text-amber-200">
+                💡 <em>Tương tự như các công cụ định dạng chữ in đậm, gạch chân trên thanh công cụ Microsoft Word, nhưng thay vì bấm nút chuột, lập trình viên sử dụng ngôn ngữ cú pháp HTML.</em>
+              </div>
+            </div>
+
+            <!-- Cú pháp Syntax Giải phẫu -->
+            <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 border border-slate-200/60 dark:border-slate-700/60 space-y-3">
+              <span class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-purple-500"></span> Giải phẫu Cú pháp (Syntax)
+              </span>
+
+              <div class="p-3 bg-slate-900 text-slate-100 rounded-lg font-mono text-xs sm:text-sm overflow-x-auto shadow-inner">
+                &lt;<span class="text-pink-400 font-bold">tagname</span> <span class="text-amber-300">attribute</span>="<span class="text-emerald-300">value</span>"&gt;<span class="text-slate-100">content</span>&lt;/<span class="text-pink-400 font-bold">tagname</span>&gt;
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div class="p-2.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span class="font-bold text-pink-500 block">tagname</span>
+                  <p class="text-slate-600 dark:text-slate-400 mt-1">Tên của thẻ HTML. Biểu thị chức năng và ngữ nghĩa đánh dấu của thẻ đó.</p>
+                </div>
+                <div class="p-2.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span class="font-bold text-amber-500 block">attribute</span>
+                  <p class="text-slate-600 dark:text-slate-400 mt-1">Thuộc tính, tính chất bổ sung. Mỗi thẻ sẽ sở hữu những thuộc tính riêng biệt.</p>
+                </div>
+                <div class="p-2.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <span class="font-bold text-indigo-500 block">content</span>
+                  <p class="text-slate-600 dark:text-slate-400 mt-1">Nội dung được đánh dấu (Markup), có thể là văn bản, hình ảnh hoặc thẻ con lồng vào.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- BRANCH 3: PHÂN LOẠI PHẦN TỬ HTML (BLOCK VS INLINE) -->
+      <section class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-sm">03</span>
+            <div>
+              <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white">Phân Loại Phần Tử HTML Cốt Lõi</h3>
+              <p class="text-xs text-slate-500">Sự khác biệt cốt tử giữa Inline Element và Block Element</p>
+            </div>
+          </div>
+          <button data-toggle="branch-elements" class="toggle-btn p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800">
+            <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+        </div>
+
+        <div id="branch-elements" class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- 3.1 INLINE ELEMENT -->
+          <div class="bg-amber-50/40 dark:bg-slate-800/40 rounded-xl p-4 border border-amber-200/60 dark:border-amber-900/40 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">Inline Element</span>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Chiều rộng (width) <strong>chỉ bao quanh vừa khít</strong> nội dung được đánh dấu. Không tự xuống hàng.
+                </p>
+              </div>
+              <span class="text-xs px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md font-mono font-bold">Thẻ đại diện: &lt;span&gt;</span>
+            </div>
+
+            <!-- List of inline tags -->
+            <div class="space-y-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3">
+                <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;a&gt;</code>
+                <div>
+                  <span class="font-semibold text-slate-800 dark:text-slate-200">Anchor element</span>
+                  <p class="text-slate-500">Tạo liên kết (hyperlink) chuyển trang hoặc neo vị trí.</p>
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-start gap-3">
+                <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;img&gt;</code>
+                <div>
+                  <span class="font-semibold text-slate-800 dark:text-slate-200">Image element</span>
+                  <p class="text-slate-500">Chèn hình ảnh. Thuộc tính quan trọng: <code>src</code> (đường dẫn nguồn ảnh) và <code>alt</code> (đoạn văn bản thay thế khi lỗi ảnh / hỗ trợ SEO).</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;b&gt;</code> / <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;strong&gt;</code>
+                  <p class="text-[11px] text-slate-500">In đậm / Nhấn mạnh mức độ quan trọng</p>
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;i&gt;</code> / <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;em&gt;</code>
+                  <p class="text-[11px] text-slate-500">In nghiêng / Nhấn mạnh ngữ điệu</p>
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;u&gt;</code>
+                  <p class="text-[11px] text-slate-500">Underline: Gạch chân đoạn chữ</p>
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;mark&gt;</code>
+                  <p class="text-[11px] text-slate-500">Đánh dấu highlight màu vàng</p>
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;sub&gt;</code> / <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;sup&gt;</code>
+                  <p class="text-[11px] text-slate-500">Chỉ số dưới ($H_2O$) / Chỉ số trên ($X^2$)</p>
+                </div>
+                <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <code class="font-bold text-indigo-600 dark:text-indigo-400">&lt;br&gt;</code>
+                  <p class="text-[11px] text-slate-500">Break: Ngắt dòng văn bản</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3.2 BLOCK ELEMENT -->
+          <div class="bg-indigo-50/40 dark:bg-slate-800/40 rounded-xl p-4 border border-indigo-200/60 dark:border-indigo-900/40 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">Block Element</span>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Chiều rộng (width) <strong>chiếm trọn 100%</strong> bề ngang khung chứa. Luôn bắt đầu trên dòng mới.
+                </p>
+              </div>
+              <span class="text-xs px-2 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-md font-mono font-bold">Thẻ đại diện: &lt;div&gt;</span>
+            </div>
+
+            <!-- Các nhóm thẻ Block -->
+            <div class="space-y-3 text-xs">
+              <!-- Basic Block -->
+              <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <p class="font-semibold text-slate-800 dark:text-slate-200">Khối văn bản cơ bản:</p>
+                <div class="grid grid-cols-2 gap-1.5 text-slate-600 dark:text-slate-400">
+                  <div><code>&lt;h1&gt;</code> - <code>&lt;h6&gt;</code>: Tiêu đề từ cấp 1 đến 6</div>
+                  <div><code>&lt;p&gt;</code>: Đoạn văn bản (Paragraph)</div>
+                  <div><code>&lt;ul&gt;</code> & <code>&lt;li&gt;</code>: Danh sách không thứ tự</div>
+                  <div><code>&lt;ol&gt;</code> & <code>&lt;li&gt;</code>: Danh sách có thứ tự</div>
+                  <div><code>&lt;hr&gt;</code>: Đường kẻ ngang phân cách</div>
+                  <div><code>&lt;div&gt;</code>: Thẻ phân vùng khối vạn năng</div>
+                </div>
+              </div>
+
+              <!-- HTML5 Semantic -->
+              <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <p class="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                  <span>HTML5 Semantic Elements (Phân vùng ngữ nghĩa)</span>
+                </p>
+                <div class="space-y-1 text-slate-600 dark:text-slate-300">
+                  <div><strong class="text-slate-800 dark:text-slate-100">&lt;header&gt;:</strong> Phân vùng dành cho phần đầu / tiêu đề của trang web.</div>
+                  <div><strong class="text-slate-800 dark:text-slate-100">&lt;nav&gt;:</strong> Phân vùng thanh điều hướng (Navbar, menu links).</div>
+                  <div><strong class="text-slate-800 dark:text-slate-100">&lt;section&gt;:</strong> Phân vùng cho các phần nội dung chính, các chương mục.</div>
+                  <div><strong class="text-slate-800 dark:text-slate-100">&lt;article&gt;:</strong> Phân vùng chứa nội dung độc lập như một bài viết, tin tức.</div>
+                  <div><strong class="text-slate-800 dark:text-slate-100">&lt;footer&gt;:</strong> Phân vùng chân trang (thông tin bản quyền, liên hệ).</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.3 BẢNG (TABLE) & BIỂU MẪU (FORM) -->
+        <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- TABLE -->
+          <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono text-xs">&lt;table&gt;</span> Cấu Trúc Bảng
+              </span>
+              <span class="text-xs text-slate-400">thead • tbody • tfoot</span>
+            </div>
+            
+            <div class="space-y-2 text-xs">
+              <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <strong class="text-indigo-600 dark:text-indigo-400">&lt;thead&gt;</strong> (Phần đầu bảng):
+                Chứa <code>&lt;tr&gt;</code> (hàng) và <code>&lt;th&gt;</code> (table heading data - ô tiêu đề in đậm).
+              </div>
+              <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div><strong class="text-indigo-600 dark:text-indigo-400">&lt;tbody&gt;</strong> (Thân bảng): Chứa <code>&lt;tr&gt;</code> và <code>&lt;td&gt;</code> (dữ liệu từng ô).</div>
+                <div class="pl-2 border-l-2 border-amber-400 text-slate-600 dark:text-slate-300">
+                  <span class="font-semibold text-amber-600 dark:text-amber-400">colspan:</span> Thuộc tính gộp/giãn cột.<br>
+                  <span class="font-semibold text-amber-600 dark:text-amber-400">rowspan:</span> Thuộc tính gộp/giãn dòng.
+                </div>
+              </div>
+              <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <strong class="text-indigo-600 dark:text-indigo-400">&lt;tfoot&gt;</strong> (Chân bảng): Chứa hàng tổng kết hoặc ghi chú cuối bảng.
+              </div>
+            </div>
+          </div>
+
+          <!-- FORM -->
+          <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-xs">&lt;form&gt;</span> Biểu Mẫu Dữ Liệu
+              </span>
+              <span class="text-xs text-slate-400">Controls & Attributes</span>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <span class="font-semibold text-slate-800 dark:text-slate-200 block mb-1">Thuộc tính của &lt;form&gt;:</span>
+                <div>• <code>action</code>: Đường dẫn máy chủ tiếp nhận dữ liệu.</div>
+                <div>• <code>method</code>: Phương thức truyền tải (<code>GET</code>: đưa tham số lên URL; <code>POST</code>: bảo mật gửi trong body request).</div>
+              </div>
+
+              <div class="p-2.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                <span class="font-semibold text-slate-800 dark:text-slate-200 block">Các điều khiển (Form Controls) quan trọng:</span>
+                
+                <div class="space-y-1">
+                  <div class="text-indigo-600 dark:text-indigo-400 font-mono font-bold">&lt;input type="..."&gt;</div>
+                  <div class="pl-2 border-l-2 border-indigo-300 space-y-1 text-slate-600 dark:text-slate-300">
+                    <div><strong>Văn bản:</strong> <code>text</code>, <code>password</code>, <code>email</code>, <code>tel</code>, <code>url</code>, <code>search</code></div>
+                    <div><strong>Số & Ngày tháng:</strong> <code>number</code>, <code>range</code>, <code>date</code>, <code>month</code>, <code>week</code>, <code>time</code>, <code>datetime-local</code></div>
+                    <div><strong>Nút bấm:</strong> <code>button</code>, <code>submit</code> (gửi form), <code>reset</code> (làm mới)</div>
+                    <div><strong>Lựa chọn:</strong> <code>radio</code> (chọn 1 trong nhiều), <code>checkbox</code> (chọn nhiều)</div>
+                  </div>
+                </div>
+
+                <div class="pt-1 text-slate-500">
+                  • <strong>Thuộc tính &lt;input&gt;:</strong> <code>name</code> (tên biến), <code>id</code> (định danh), <code>value</code> (giá trị), <code>placeholder</code> (gợi ý mờ).<br>
+                  • <strong>Các thẻ khác:</strong> <code>&lt;select&gt;</code>/<code>&lt;option&gt;</code> (hộp chọn thả xuống), <code>&lt;textarea&gt;</code> (nhập văn bản nhiều dòng).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- VIEW 2: FLASHCARD / INTERACTIVE CHEATSHEET VIEW -->
+    <div id="cardsView" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="cardContainer">
+        <!-- Cards generated dynamically via JavaScript -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Interactive Modal for Detailed Quick View -->
+  <div id="detailModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 max-w-lg w-full rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h4 id="modalTitle" class="text-lg font-bold text-slate-900 dark:text-white">Chi tiết</h4>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modalContent" class="text-sm text-slate-600 dark:text-slate-300 space-y-3">
+        <!-- Dynamic content -->
+      </div>
+      <div class="pt-2 text-right">
+        <button onclick="closeModal()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-auto py-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-xs text-slate-500">
+    Hệ thống tài liệu hóa sơ đồ tư duy HTML & Client-Server • Sẵn sàng để tra cứu, học tập và ôn luyện
+  </footer>
+
+  <script>
+    // Dữ liệu sổ tay thẻ tra cứu (Cards Data)
+    const cheatsheetData = [
+      {
+        title: "Internet & Website",
+        category: "Client - Server",
+        badge: "Nền tảng",
+        color: "sky",
+        desc: "Internet là mạng lưới máy tính vật lý kết nối toàn cầu qua dây cáp viễn thông. Website là phương tiện truyền tải thông tin trên mạng lưới đó.",
+        code: "Mô hình cốt lõi: Toàn bộ ứng dụng web vận hành dựa trên Client - Server Model."
+      },
+      {
+        title: "Server (Máy chủ) & Backend",
+        category: "Client - Server",
+        badge: "Backend",
+        color: "emerald",
+        desc: "Hệ thống máy tính trực tuyến 24/7 (Hosting) lưu trữ file, video, âm thanh và mã nguồn web. Chịu trách nhiệm nhận Request, xử lý nghiệp vụ và trả về Response.",
+        code: "HTML (Bộ khung) + CSS (Màu da) + JS (Bộ não)"
+      },
+      {
+        title: "Client (Máy khách) & Frontend",
+        category: "Client - Server",
+        badge: "Frontend",
+        color: "indigo",
+        desc: "Các thiết bị phần cứng (PC, Laptop, Smartphone, TV) cài đặt Trình duyệt (Chrome, Safari, Firefox). Gửi yêu cầu của người dùng và render giao diện được phản hồi.",
+        code: "Nhiệm vụ: Gửi Request -> Nhận Response -> Render UI"
+      },
+      {
+        title: "Cú pháp Thẻ HTML (Syntax)",
+        category: "HTML Cơ bản",
+        badge: "Cú pháp",
+        color: "purple",
+        desc: "Cấu trúc gồm thẻ mở, thuộc tính, giá trị thuộc tính, nội dung đánh dấu và thẻ đóng.",
+        code: '<tagname attribute="value">\n  Nội dung (content)\n</tagname>'
+      },
+      {
+        title: "Inline Element",
+        category: "Phân loại",
+        badge: "Bề ngang vừa khít",
+        color: "amber",
+        desc: "Chiều rộng bao quanh vừa đúng nội dung, không chiếm trọn dòng và không tự nhảy sang dòng mới.",
+        code: "Đại diện: <span>\nThẻ tiêu biểu: <a>, <img>, <b>, <strong>, <i>, <em>, <u>, <mark>, <br>, <sub>, <sup>"
+      },
+      {
+        title: "Block Element",
+        category: "Phân loại",
+        badge: "Chiếm 100% dòng",
+        color: "indigo",
+        desc: "Chiều rộng chiếm trọn 100% bề ngang khung chứa, tự động ngắt dòng trước và sau nó.",
+        code: "Đại diện: <div>\nThẻ tiêu biểu: <h1>-<h6>, <p>, <ul>, <ol>, <li>, <hr>"
+      },
+      {
+        title: "HTML5 Semantic Tags",
+        category: "Cấu trúc Web",
+        badge: "Chuẩn ngữ nghĩa",
+        color: "emerald",
+        desc: "Các thẻ giúp phân vùng tài liệu rõ ràng, hỗ trợ SEO và khả năng đọc mã của lập trình viên.",
+        code: "<header>  : Phần đầu trang\n<nav>     : Thanh điều hướng menu\n<section> : Phân vùng chuyên mục\n<article> : Khối bài viết độc lập\n<footer>  : Phần chân trang"
+      },
+      {
+        title: "Thẻ Bảng (<table>)",
+        category: "Bảng dữ liệu",
+        badge: "Cấu trúc ô",
+        color: "blue",
+        desc: "Phân chia dữ liệu bảng khoa học qua các cấp thead, tbody, tfoot. Hỗ trợ gộp cột và gộp dòng.",
+        code: "colspan: Giãn/gộp cột ngang\nrowspan: Giãn/gộp hàng dọc\n<tr>: Hàng | <th>: Ô tiêu đề | <td>: Ô dữ liệu"
+      },
+      {
+        title: "Biểu Mẫu Form (<form>)",
+        category: "Tương tác",
+        badge: "Gửi dữ liệu",
+        color: "rose",
+        desc: "Thu thập thông tin người dùng gửi lên máy chủ với method GET (tham số nổi trên URL) hoặc POST (bảo mật trong phần thân request).",
+        code: '<form action="/api/login" method="POST">\n  <input type="text" name="user" placeholder="Tên">\n  <input type="password" name="pass">\n  <button type="submit">Đăng nhập</button>\n</form>'
+      },
+      {
+        title: "Các loại Input Type",
+        category: "Form Control",
+        badge: "Đa dạng kiểu",
+        color: "teal",
+        desc: "Bộ sưu tập các kiểu nhập liệu phổ biến của thẻ <input>.",
+        code: "Text: text, password, email, tel, url, search\nSố/Ngày: number, range, date, time, datetime-local\nLựa chọn: radio, checkbox\nNút: submit, reset, button"
+      }
+    ];
+
+    // Render Cards
+    function renderCards(data) {
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = data.map(item => `
+        <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-500/50 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-400">${item.category}</span>
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-${item.color}-100 dark:bg-${item.color}-950/70 text-${item.color}-700 dark:text-${item.color}-300">
+                ${item.badge}
+              </span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-white text-base mb-2">${item.title}</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">${item.desc}</p>
+          </div>
+          <div class="mt-auto">
+            <pre class="p-2.5 rounded bg-slate-950 text-slate-200 font-mono text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(item.code)}</pre>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Toggle Sub-branches
+    function toggleSub(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
+    }
+
+    // Toggle Branch containers
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-toggle');
+        const target = document.getElementById(targetId);
+        const icon = btn.querySelector('svg');
+        if (target) {
+          target.classList.toggle('hidden');
+          icon.classList.toggle('rotate-180');
+        }
+      });
+    });
+
+    // Expand / Collapse all
+    document.getElementById('expandAllBtn').addEventListener('click', () => {
+      document.querySelectorAll('#mindmapView [id^="sub-"], #mindmapView [id^="branch-"]').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('.toggle-btn svg').forEach(svg => svg.classList.remove('rotate-180'));
+    });
+
+    document.getElementById('collapseAllBtn').addEventListener('click', () => {
+      document.querySelectorAll('#mindmapView [id^="sub-"]').forEach(el => el.classList.add('hidden'));
+    });
+
+    // Search filter
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+
+      // Filter in Card View
+      const filteredCards = cheatsheetData.filter(c => 
+        c.title.toLowerCase().includes(query) ||
+        c.desc.toLowerCase().includes(query) ||
+        c.code.toLowerCase().includes(query) ||
+        c.category.toLowerCase().includes(query)
+      );
+      renderCards(filteredCards);
+
+      // Search highlight/open branches in Mindmap View
+      if (query.length > 0) {
+        document.querySelectorAll('#mindmapView [id^="sub-"], #mindmapView [id^="branch-"]').forEach(el => el.classList.remove('hidden'));
+      }
+    });
+
+    // Mode toggling (Mindmap vs Cards)
+    const viewMindmapBtn = document.getElementById('viewMindmapBtn');
+    const viewCardsBtn = document.getElementById('viewCardsBtn');
+    const mindmapView = document.getElementById('mindmapView');
+    const cardsView = document.getElementById('cardsView');
+
+    viewMindmapBtn.addEventListener('click', () => {
+      mindmapView.classList.remove('hidden');
+      cardsView.classList.add('hidden');
+      viewMindmapBtn.className = "px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm";
+      viewCardsBtn.className = "px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600";
+    });
+
+    viewCardsBtn.addEventListener('click', () => {
+      cardsView.classList.remove('hidden');
+      mindmapView.classList.add('hidden');
+      viewCardsBtn.className = "px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm";
+      viewMindmapBtn.className = "px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600";
+    });
+
+    // Dark Mode Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Init theme
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+
+    // Modal helpers
+    function closeModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('detailModal').classList.remove('flex');
+    }
+
+    // Initial render
+    renderCards(cheatsheetData);
+  </script>
+</body>
+</html>
