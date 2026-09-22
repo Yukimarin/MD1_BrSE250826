@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* h3{
     color:red !important
 } */
@@ -82,3 +83,89 @@ div {
 
 
 
+=======
+/* h3{
+    color:red !important
+} */
+
+/* 2. Selector */
+/* #container{
+    color: green;
+}
+.container {
+    color: red;
+}
+div {
+    color: black;
+} */
+
+/* Cang chi tiet thi do uu tien cang cao */
+/* .container{ 
+    color: red
+}
+
+.container .item{
+    color: blue
+} */
+
+/* div ~ p{
+    color:red
+} */
+
+/* Pseudo class */
+/* .item:hover{
+    color: red;
+} */
+
+/* .item:nth-child(2n+1):hover{
+    color:red
+} */
+
+/* Reset css */
+*{
+    margin:0;
+    padding:0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.container {
+    width: 500px;
+    height: 500px;
+    background-color: aqua;
+    position: relative;
+}
+
+.container .box:nth-child(1){
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    position: absolute;
+    /* z-index: -1; */
+    top: 100px;
+    left: 100px;
+}
+
+.container .box:nth-child(2){
+    width: 100px;
+    height: 100px;
+    background-color: yellow;
+}
+
+.container .box:nth-child(3){
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+}
+
+.icon-heart{
+    color:red
+}
+
+
+
+
+
+
+
+>>>>>>> 42fb964852bd07550d5a3f361e279c736716ab33
