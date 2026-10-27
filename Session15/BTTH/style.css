@@ -45,6 +45,7 @@ button {
 .btn-add {
     background: #007bff;
     color: #fff;
+    /* display: none; */
 }
 
 .btn-update {
